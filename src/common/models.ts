@@ -9,7 +9,8 @@ export interface RequestsDetailedItemModel {
   // issuetype: RequestsItemReference | null;
   // zone: RequestsItemReference | null;
   status: RequestsItemStatusModel;
-  futureStatus: RequestsItemStatusModel[] | null;
+  futureStatus: RequestsItemStatusModel[];
+  service: ServiceType | null;
   // photos: PhotoDescription[];
   // logs: RequestsItemLogs[];
 }

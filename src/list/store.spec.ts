@@ -255,7 +255,7 @@ describe("createListStore", () => {
             actions => {
                 expectAction(actions, ListActions.startedLoadingHistory());
                 expectAction(actions, ListActions.addHistoricItems({hasMore: false, items: [], totalItemCount: 0}));
-                expectAction(actions, ListActions.startedLoadingHistory());
+                expectAction(actions, ListActions.finishedLoadingHistory());
             }, {
                 count: 3,
             }
@@ -267,7 +267,7 @@ describe("createListStore", () => {
             actions => {
                 expectAction(actions, ListActions.startedLoadingHistory());
                 expectAction(actions, ListActions.errorLoadingData(errorMessage));
-                expectAction(actions, ListActions.startedLoadingHistory());
+                expectAction(actions, ListActions.finishedLoadingHistory());
             }, {
                 count: 3,
             },

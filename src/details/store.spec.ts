@@ -39,23 +39,9 @@ import {
     defaultDetailsState, DetailsActions, DetailsState, createDetailsStore,
     DetailsStore,
 } from "./store";
-import { RequestsDetailedItemModel } from "../common/models";
+import { RequestsDetailedItemModel, RequestsItemModel } from "../common/models";
 
-describe("defaultDetailsState", () => {
-    describe("Sanity checks", () => {
-        it("Should be a function", () =>
-            expect(typeof defaultDetailsState).toBe("function"));
-    });
-
-    describe("Given no options", () => {
-        it("The default state should have default values", () => {
-            const state = defaultDetailsState();
-            expect(state.isAvatarButtonOpen).toEqual(false);
-            expect(state.isLoading).toEqual(false);
-            expect(state.item).toEqual(null);
-        });
-    });
-});
+/* DATA */
 
 const init = defaultDetailsState();
 const initToggled = reassign(init, { isAvatarButtonOpen: true });
@@ -66,8 +52,16 @@ const emptyItem: RequestsDetailedItemModel = {
     description: "",
     contactname: "",
     contact: "",
-    status: null,
-    futureStatus: null,
+    service: null,
+    status: {
+        color: "",
+        forecolor: "",
+        id: "",
+        letter: "",
+        name: "",
+        systemname: "",
+    },
+    futureStatus: [],
 };
 const initEmpty = reassign(init, { item: emptyItem });
 const nonEmptyItem: RequestsDetailedItemModel = {
@@ -77,6 +71,7 @@ const nonEmptyItem: RequestsDetailedItemModel = {
     description: "description",
     contactname: "contactname",
     contact: "contact",
+    service: "Gardening",
     status: {
         color: "color",
         forecolor: "forecolor",
@@ -101,10 +96,51 @@ const nonEmptyItem: RequestsDetailedItemModel = {
         systemname: "systemname",
     }],
 };
-
 const initNonEmpty = reassign(init, { item: nonEmptyItem });
 const emptyNonEmpty = reassign(initEmpty, { item: nonEmptyItem });
 const nonEmptyEmpty = reassign(initNonEmpty, { item: emptyItem });
+const simpleItem: RequestsItemModel = {
+    id: "string",
+    status: {
+        color: "string",
+        forecolor: "string",
+        id: "string",
+        letter: "string",
+        name: "string",
+        systemname: "string",
+    },
+    subject: "string",
+    subtitle: "string",
+};
+const initSimpleItem = reassign(init, { item: {
+    id: simpleItem.id,
+    status: simpleItem.status,
+    subject: simpleItem.subject,
+    subtitle: simpleItem.subtitle,
+    contact: "",
+    contactname: "",
+    description: "",
+    futureStatus: [],
+    service: null,
+}});
+
+/* TESTS */
+
+describe("defaultDetailsState", () => {
+    describe("Sanity checks", () => {
+        it("Should be a function", () =>
+            expect(typeof defaultDetailsState).toBe("function"));
+    });
+
+    describe("Given no options", () => {
+        it("The default state should have default values", () => {
+            const state = defaultDetailsState();
+            expect(state.isAvatarButtonOpen).toEqual(false);
+            expect(state.isLoading).toEqual(false);
+            expect(state.item).toEqual(null);
+        });
+    });
+});
 
 testActions(DetailsActions, "DetailsActions",
     expectedActions<DetailsState>("MantTest.Requester.Details/",
@@ -119,7 +155,8 @@ testActions(DetailsActions, "DetailsActions",
                 .withSample(init, nonEmptyItem, initNonEmpty)
                 .withSample(initEmpty, nonEmptyItem, emptyNonEmpty)
                 .withSample(initNonEmpty, emptyItem, nonEmptyEmpty)
-                .withSample(initNonEmpty, null, init);
+                .withSample(initNonEmpty, null, init)
+                .withSample(init, simpleItem, initSimpleItem);
 
             actions.typed("editRequest", "EDIT_REQUEST");
 

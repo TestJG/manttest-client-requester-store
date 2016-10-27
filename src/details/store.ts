@@ -57,7 +57,8 @@ export const DetailsActions = {
       contactname: p.contactname ? p.contactname : "",
       contact: p.contact ? p.contact : "",
       status: p.status,
-      futureStatus: p.futureStatus ? p.futureStatus : null,
+      futureStatus: p.futureStatus ? p.futureStatus : [],
+      service: p.service ? p.service : null,
     }}); } ),
 
   editRequest: newEvent.of<RequestsDetailedItemModel>("EDIT_REQUEST"),

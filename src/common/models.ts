@@ -31,4 +31,8 @@ export interface RequestsItemModel {
   status: RequestsItemStatusModel;
 }
 
-export type ServiceType = "Maintenance" | "Gardening" | "Cleaning";
+export enum ServiceType {
+  Maintenance = 0,
+  Gardening = 1,
+  Cleaning = 2,
+};

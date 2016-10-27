@@ -60,7 +60,6 @@ export interface NewRequestPayload {
   serviceType: ServiceType;
 }
 
-
 /* ACTIONS */
 
 export interface ListEvents {

@@ -288,7 +288,7 @@ describe("createEditStore", () => {
             },
         );
 
-        notAbletoSaveTester("When the store receives a save edition command under failure conditions",
+        notAbletoSaveTester("When the store receives a save edition command under invalid conditions",
             "it should dispatch just the same saveEdition command",
             [EditActions.saveEdition(nonEmptyItem)],
             actions => {
@@ -296,6 +296,25 @@ describe("createEditStore", () => {
             }, {
                 count: 1,
             },
+        );
+    });
+
+    describe("Validation effects", () => {
+        const validationStateTest = testLastStateEffects<EditState, EditStore>(
+            "Given a Login store",
+            createEditStore(serviceEmptyMock)
+        );
+
+        validationStateTest("When the store receives no events",
+            "it should not be possible to save",
+            [],
+            s => expect(s.canSave).toBeFalsy
+        );
+
+        validationStateTest("When the store has a valid editable item",
+            "it should be possible to save",
+            [EditActions.loadEditItem(nonEmptyItem)],
+            s => expect(s.canSave).toBeTruthy
         );
     });
 

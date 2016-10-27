@@ -21,6 +21,8 @@ import {
 } from "rxstore";
 
 import { ListStore } from "./list";
+import { DetailsStore } from "./details";
+import { EditStore } from "./edit";
 
 /* MODELS */
 
@@ -30,5 +32,14 @@ export interface RequesterState {
   listStore: ListStore;
   detailsStore: DetailsStore | null;
   editStore: EditStore | null;
-
 }
+
+export enum RequesterViewMode {
+  List = 0,
+  Details = 1,
+  Edit = 2,
+};
+
+/* ACTIONS */
+
+

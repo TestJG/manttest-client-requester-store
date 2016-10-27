@@ -22,7 +22,7 @@ import {
   tunnelActions, extendWithActions, extendWith,
 } from "rxstore";
 
-import { ServiceType, RequestsItemStatusModel, RequestsDetailedItemModel } from "../common/models";
+import { RequestsItemStatusModel, RequestsDetailedItemModel } from "../common/models";
 import { SaveEditionService } from "./saveEditionService";
 
 /* MODELS */
@@ -31,7 +31,7 @@ export interface EditState {
   isAvatarButtonOpen: boolean;
   newStatus: RequestsItemStatusModel | null;
   item: RequestsDetailedItemModel | null;
-  editable: RequestsDetailedItemModel;
+  editable: RequestsDetailedItemModel | null;
   canSave: boolean;
   isSaving: boolean;
   saved: boolean;
@@ -97,6 +97,11 @@ export const defaultEditState = (): EditState => ({
   saved: false,
 });
 
+const validationEffects = (store: EditStore) => store.state$
+  .map(s => !!s.editable)
+  .distinctUntilChanged()
+  .map(EditActions.canSaveChanged);
+
 const saveEditionEffects = (saveEditionService: SaveEditionService) => (store: EditStore) => store.update$
   .filter(u => u.action.type === EditActions.saveEdition.type)
   .filter(u => u.state.canSave)
@@ -118,6 +123,7 @@ export const createEditStore = (
   EditReducer,
   defaultEditState,
   withEffects(
+    validationEffects,
     saveEditionEffects(saveEditionService)),
   extendWithActions(EditActions),
 );

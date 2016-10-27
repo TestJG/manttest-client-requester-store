@@ -37,7 +37,7 @@ import {
 
 import { defaultEditState, EditActions, EditState, createEditStore, EditStore } from "./store";
 import { RequestsDetailedItemModel } from "../common/models";
-import { SaveEditionResult, SaveEditionService } from "./saveEditionService":
+import { SaveEditionResult, SaveEditionService } from "./saveEditionService";
 
 /* DATA */
 
@@ -68,7 +68,7 @@ const nonEmptyItem: RequestsDetailedItemModel = {
     description: "description",
     contactname: "contactname",
     contact: "contact",
-    service: "Gardening",
+    service: 0,
     status: {
         color: "color",
         forecolor: "forecolor",

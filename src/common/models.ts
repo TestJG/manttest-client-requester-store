@@ -3,14 +3,14 @@ export interface RequestsDetailedItemModel {
   id: string;
   subject: string;
   subtitle: string;
-  description: string;
-  contactname: string;
-  contact: string;
+  description?: string;
+  contactname?: string;
+  contact?: string;
   // issuetype: RequestsItemReference | null;
   // zone: RequestsItemReference | null;
   status: RequestsItemStatusModel;
-  futureStatus: RequestsItemStatusModel[];
-  service: ServiceType | null;
+  futureStatus?: RequestsItemStatusModel[];
+  service?: ServiceType | null;
   // photos: PhotoDescription[];
   // logs: RequestsItemLogs[];
 }

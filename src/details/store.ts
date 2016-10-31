@@ -17,10 +17,11 @@ import {
   reducerFromActions, Reducer, StateUpdate,
   createStore, Store, StoreMiddleware,
   withEffects, defineStore, ICreateStoreOptions, logUpdates,
-  tunnelActions, extendWithActions, extendWith,
+  tunnelActions, extendWithActions, extendWith, Action,
 } from "rxstore";
 
-import { RequestsDetailedItemModel, RequestsItemStatusModel } from "../common/models";
+import { RequestsDetailedItemModel, RequestsItemStatusModel, RequestsItemModel } from "../common/models";
+import { LoadDetailsService } from "./loadDetailsService";
 
 /* MODELS */
 
@@ -47,23 +48,38 @@ const newEvent = actionCreator<DetailsState>("MantTest.Requester.Details/");
 export const DetailsActions = {
   toggleAvatarButton: newEvent("TOGGLE_AVATAR_BUTTON", s => reassign(s, {isAvatarButtonOpen: !s.isAvatarButtonOpen})),
 
-  loadItem: newEvent.of<RequestsDetailedItemModel>("LOAD_ITEM", (s, p) => {
+  loadItem: newEvent.of<RequestsItemModel>("LOAD_ITEM", (s, p) => {
     if (!p) { return reassign(s, {item: null}); };
     return reassign(s, {item: {
       id: p.id,
       subject: p.subject,
       subtitle: p.subtitle,
-      description: p.description ? p.description : "",
-      contactname: p.contactname ? p.contactname : "",
-      contact: p.contact ? p.contact : "",
       status: p.status,
-      futureStatus: p.futureStatus ? p.futureStatus : [],
-      service: p.service ? p.service : null,
     }}); } ),
+
+  startedLoadingDetails: newEvent("STARTED_LOADING_DETAILS", s => reassign(s, {isLoading: true})),
+
+  loadDetails: newEvent.of<RequestsDetailedItemModel>("LOAD_DETAILS", (s, p) => {
+    if (!p) { return reassign(s, {item: null}); };
+    return reassign(s, {item: {
+      id: p.id,
+      subject: p.subject,
+      subtitle: p.subtitle,
+      description: p.description,
+      contactname: p.contactname,
+      contact: p.contact,
+      status: p.status,
+      futureStatus: p.futureStatus,
+      service: p.service,
+    }}); } ),
+
+  finishedLoadingDetails: newEvent("FINISHED_LOADING_DETAILS", s => reassign(s, {isLoading: false})),
+
+  errorLoadingData: newEvent.of<string>("ERROR_LOADING_DATA"),
 
   editRequest: newEvent.of<RequestsDetailedItemModel>("EDIT_REQUEST"),
 
-  changeStatus: newEvent.of<RequestsItemStatusModel>("CHANGE_STATUS"),
+  changeStatus: newEvent.of<ChangeStatusPayload>("CHANGE_STATUS"),
 };
 
 /* STORE */
@@ -72,15 +88,39 @@ const DetailsReducer = reducerFromActions(DetailsActions);
 
 export type DetailsStore = Store<DetailsState> & DetailsEvents;
 
+export const LoadDetailsEffects = (loadDetailsService: LoadDetailsService) => (store: DetailsStore) =>
+  store.update$
+    .filter(u => u.action.type === DetailsActions.loadItem.type)
+    .filter(u => u.state.isLoading === false)
+    .switchMap(u =>
+      Observable.concat(
+        Observable.of(DetailsActions.startedLoadingDetails()),
+        loadDetailsService(u.state.item!.id)
+          .map(r => r.kind === "success"
+            ? DetailsActions.loadDetails(r.item)
+            : DetailsActions.errorLoadingData(r.error)),
+        Observable.of(DetailsActions.finishedLoadingDetails),
+      )
+    );
+
 export const defaultDetailsState = (): DetailsState => ({
   isAvatarButtonOpen: false,
   isLoading: false,
   item: null,
 });
 
-export const createDetailsStore = () =>
+export const createDetailsStore = (
+  loadDetailsService: LoadDetailsService,
+) =>
     defineStore<DetailsState, DetailsStore>(
       DetailsReducer,
       defaultDetailsState,
-      extendWithActions(DetailsActions)
+      extendWithActions(DetailsActions),
+      withEffects(LoadDetailsEffects(loadDetailsService)),
+      tunnelActions({
+        actions: {
+          changeStatus: (a: Action) => DetailsActions.editRequest(a.payload.item),
+        },
+        dispatchFactory: (s: DetailsStore) => s.dispatch,
+      })
     );

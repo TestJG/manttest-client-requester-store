@@ -71,7 +71,7 @@ const nonEmptyItem: RequestsDetailedItemModel = {
     description: "description",
     contactname: "contactname",
     contact: "contact",
-    service: "Gardening",
+    service: 0,
     status: {
         color: "color",
         forecolor: "forecolor",
@@ -112,17 +112,27 @@ const simpleItem: RequestsItemModel = {
     subject: "string",
     subtitle: "string",
 };
+const simpleEmptyItem: RequestsItemModel = {
+    id: "",
+    status: {
+        color: "",
+        forecolor: "",
+        id: "",
+        letter: "",
+        name: "",
+        systemname: "",
+    },
+    subject: "",
+    subtitle: "",
+};
 const initSimpleItem = reassign(init, { item: {
     id: simpleItem.id,
     status: simpleItem.status,
     subject: simpleItem.subject,
     subtitle: simpleItem.subtitle,
-    contact: "",
-    contactname: "",
-    description: "",
-    futureStatus: [],
-    service: null,
 }});
+const initSimpleEmptyItem = reassign(init, { item: simpleEmptyItem });
+const initIsLoading = reassign(init, {isLoading: true});
 
 /* TESTS */
 
@@ -149,29 +159,44 @@ testActions(DetailsActions, "DetailsActions",
                 .withSample(init, initToggled)
                 .withSample(initToggled, init);
 
-            actions.typed("loadItem", "LOAD_ITEM")
+            actions.typed("loadDetails", "LOAD_DETAILS")
                 .withSample(init, null, init)
                 .withSample(init, emptyItem, initEmpty)
                 .withSample(init, nonEmptyItem, initNonEmpty)
                 .withSample(initEmpty, nonEmptyItem, emptyNonEmpty)
                 .withSample(initNonEmpty, emptyItem, nonEmptyEmpty)
-                .withSample(initNonEmpty, null, init)
+                .withSample(initNonEmpty, null, init);
+
+            actions.typed("loadItem", "LOAD_ITEM")
+                .withSample(init, null, init)
                 .withSample(init, simpleItem, initSimpleItem);
 
             actions.typed("editRequest", "EDIT_REQUEST");
 
             actions.typed("changeStatus", "CHANGE_STATUS");
+
+            actions.empty("startedLoadingDetails", "STARTED_LOADING_DETAILS")
+                .withSample(init, initIsLoading)
+                .withSample(initIsLoading, initIsLoading);
+
+            actions.empty("finishedLoadingDetails", "FINISHED_LOADING_DETAILS")
+                .withSample(init, init)
+                .withSample(initIsLoading, init);
+
+            actions.typed("errorLoadingData", "ERROR_LOADING_DATA");
         }
     )
 );
 
 describe("createDetailsStore", () => {
+    const serviceEmptyMock = jest.fn(() => null);
+
     describe("Sanity checks", () => {
         it("should be a function", () => expect(typeof createDetailsStore).toBe("function"));
     });
 
     testLastStateEffects<DetailsState, DetailsStore>(
-        "Given a defaultDetailsStore", createDetailsStore())
+        "Given a defaultDetailsStore", createDetailsStore(serviceEmptyMock))
         ("When the store receives no actions", "The state should be as expected", [],
         state => {
             expect(state.isAvatarButtonOpen).toEqual(defaultDetailsState().isAvatarButtonOpen);

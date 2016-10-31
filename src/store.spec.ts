@@ -38,17 +38,32 @@ import {
 import {
     defaultRequesterState, createRequesterStore, RequesterActions, RequesterStore, RequesterState, RequesterViewMode
 } from "./store";
-import { DetailsActions, createDetailsStore } from "./details";
+import { DetailsActions, createDetailsStore, DetailsState } from "./details";
+import { EditState, createEditStore, EditActions } from "./edit";
 import { ListActions } from "./list";
-import { RequestsItemModel, RequestsDetailedItemModel } from "./common/models";
+import { RequestsItemModel, RequestsDetailedItemModel, ServiceType, RequestsItemStatusModel } from "./common/models";
 
 /* DATA */
+
+const serviceEmptyMock = jest.fn(() => null);
 
 const withData: RequesterState = {
     detailsStore: null,
     editStore: null,
     listStore: null,
     viewMode: RequesterViewMode.Details,
+};
+const withDetails: RequesterState = {
+    detailsStore: createDetailsStore(() => Observable.empty())(),
+    editStore: null,
+    listStore: null,
+    viewMode: RequesterViewMode.Details,
+};
+const withDetailsAndEdit: RequesterState = {
+    detailsStore: createDetailsStore(() => Observable.empty())(),
+    editStore: createEditStore(() => Observable.empty())(),
+    listStore: null,
+    viewMode: RequesterViewMode.Edit,
 };
 const item: RequestsItemModel = {
     id: "string",
@@ -63,6 +78,25 @@ const item: RequestsItemModel = {
         id: "string",
     },
 };
+const emptyStatus: RequestsItemStatusModel = {
+    color: "",
+    forecolor: "",
+    id: "",
+    letter: "",
+    name: "",
+    systemname: "",
+};
+const emptyDetailItem: RequestsDetailedItemModel = {
+    id: "",
+    subject: "",
+    subtitle: "",
+    description: "",
+    contactname: "",
+    contact: "",
+    service: null,
+    status: emptyStatus,
+    futureStatus: [],
+};
 
 /* TESTS */
 
@@ -75,7 +109,7 @@ describe("defaultRequesterState", () => {
 
     describe("Given no options", () => {
         it("The default state should have default values", () => {
-            const state = defaultRequesterState([]);
+            const state = defaultRequesterState(serviceEmptyMock, serviceEmptyMock);
             expect(state.detailsStore).toBeNull;
             expect(state.editStore).toBeNull;
             expect(state.listStore).not.toBeNull;
@@ -93,14 +127,15 @@ describe("createRequesterStore", () => {
         testLastStateEffects<RequesterState, RequesterStore>("Given a defaultRequesterState", createRequesterStore([]))
             ("When the store receives no actions", "The state should be as expected", [],
             state => {
-                expect(state.detailsStore).toEqual(defaultRequesterState([]).detailsStore);
-                expect(state.editStore).toEqual(defaultRequesterState([]).editStore);
+                expect(state.detailsStore)
+                    .toEqual(defaultRequesterState(serviceEmptyMock, serviceEmptyMock).detailsStore);
+                expect(state.editStore).toEqual(defaultRequesterState(serviceEmptyMock, serviceEmptyMock).editStore);
                 expect(typeof state.listStore).toBe("object");
-                expect(state.viewMode).toEqual(defaultRequesterState([]).viewMode);
+                expect(state.viewMode).toEqual(defaultRequesterState(serviceEmptyMock, serviceEmptyMock).viewMode);
             });
 
         testLastStateEffects<RequesterState, RequesterStore>("Given an initial state",
-            () => createRequesterStore([])({init: withData}))
+            () => createRequesterStore([])({ init: withData }))
             ("When the store receives no actions", "The state should be as expected", [],
             state => {
                 expect(state.detailsStore).toEqual(withData.detailsStore);
@@ -111,44 +146,143 @@ describe("createRequesterStore", () => {
     });
 
     describe("OpenRequest effects", () => {
+        describe("Given a requester store when its details store dispatches an Open Request action", () => {
+            it("it should dispatch createDetails and setViewMode(DetailsView) to the same requester store", () => {
+                const store = createRequesterStore([null, null, null, () => Observable.empty<Action>()])();
+                const promise = store.action$
+                    .timeout(40, undefined, queue)
+                    .catch(e => Observable.empty<Action>())
+                    .takeLast(2)
+                    .toArray().toPromise() as PromiseLike<Action[]>;
+                store.state$
+                    .first()
+                    .subscribe(s => s.listStore.dispatch(ListActions.openRequest(item)));
+                return promise.then(a => {
+                    expect(a.length).toEqual(2);
+                    expect(a[0].type).toEqual(RequesterActions.createDetails.type);
+                    expect(a[1]).toEqual(RequesterActions.setViewMode(RequesterViewMode.Details));
+                });
+            });
 
-        describe("Given a requester store when the store receives an Open Request action", () => {
-            it("it should dispatch createDetails and setViewMode to the same requester store", () => {
+            it("it should dispatch a loadItem to details store (item is not null)", () => {
+                const store = createRequesterStore([null, null, null, () => Observable.empty<Action>()])();
+                const promise = store.state$
+                    .switchMap(s => s.detailsStore ? s.detailsStore.state$ : Observable.empty<DetailsState>())
+                    .timeout(40, undefined, queue)
+                    .catch(e => Observable.empty<DetailsState>())
+                    .takeLast(1)
+                    .toArray()
+                    .toPromise() as PromiseLike<DetailsState[]>;
+                store.state$
+                    .first()
+                    .subscribe(s => s.listStore.dispatch(ListActions.openRequest(item)));
+                return promise.then(s => {
+                    expect(s[0].item).not.toBeNull();
+                    expect(s[0].item.id).toEqual("string");
+                });
+            });
+        });
+    });
+
+    describe("NewRequest effects", () => {
+        describe("Given a requester store when its list store dispatches a New Request action", () => {
+            it("it should dispatch createEdit and setViewMode(EditView) to the same requester store", () => {
                 const store = createRequesterStore([])();
                 const promise = store.action$
-                    .timeout(400, undefined, queue)
+                    .timeout(40, undefined, queue)
                     .catch(e => Observable.empty<Action>())
-                    .takeLast(1)
+                    .takeLast(2)
                     .toArray().toPromise() as PromiseLike<Action[]>;
-                store.state$.map(s => s.listStore.dispatch(ListActions.openRequest(item)));
+                store.state$
+                    .first()
+                    .subscribe(s =>
+                        s.listStore.dispatch(ListActions.newRequest({ serviceType: ServiceType.Gardening })));
                 return promise.then(a => {
-                    // expect(a).toEqual([
-                    //     RequesterActions.createDetails(createDetailsStore()()),
-                    //     RequesterActions.setViewMode(RequesterViewMode.Details)]);
-                    return expectAction(a, RequesterActions.setViewMode(RequesterViewMode.Details));
-                    });
+                    expect(a.length).toEqual(2);
+                    expect(a[0].type).toEqual(RequesterActions.createEdit.type);
+                    expect(a[1]).toEqual(RequesterActions.setViewMode(RequesterViewMode.Edit));
+                });
+            });
+
+            it("it should dispatch a loadEditItem to edit store (item has a service type)", () => {
+                const store = createRequesterStore([])();
+                const promise = store.state$
+                    .switchMap(s => s.editStore ? s.editStore.state$ : Observable.empty<EditState>())
+                    .timeout(40, undefined, queue)
+                    .catch(e => Observable.empty<EditState>())
+                    .takeLast(1)
+                    .toArray().toPromise() as PromiseLike<EditState[]>;
+                store.state$
+                    .first()
+                    .subscribe(s =>
+                        s.listStore.dispatch(ListActions.newRequest({ serviceType: ServiceType.Gardening })));
+                return promise.then(s => {
+                    expect(s[0].item).not.toBeNull();
+                    expect(s[0].item.service).toEqual(ServiceType.Gardening);
+                });
+            });
+        });
+    });
+
+    describe("EditRequest Effects", () => {
+        describe("Given a requester store when its details store dispatches an Edit Request action", () => {
+            it("it should dispatch a createEdit and setViewMode(EditView) to the same requester store", () => {
+                const store = createRequesterStore([])({ init: withDetails });
+                const promise = store.action$
+                    .timeout(40, undefined, queue)
+                    .catch(e => Observable.empty<Action>())
+                    .takeLast(2)
+                    .toArray().toPromise() as PromiseLike<Action[]>;
+                store.state$
+                    .first()
+                    .subscribe(s => s.detailsStore.dispatch(DetailsActions.editRequest(emptyDetailItem)));
+                return promise.then(a => {
+                    expect(a.length).toEqual(2);
+                    expect(a[0].type).toEqual(RequesterActions.createEdit.type);
+                    expect(a[1]).toEqual(RequesterActions.setViewMode(RequesterViewMode.Edit));
+                });
+            });
+
+            it("it should dispatch a loadEditItem to edit store (item is the same that was on details)", () => {
+                const store = createRequesterStore([])({ init: withDetails });
+                const promise = store.state$
+                    .switchMap(s => s.editStore ? s.editStore.state$ : Observable.empty<EditState>())
+                    .timeout(40, undefined, queue)
+                    .catch(e => Observable.empty<EditState>())
+                    .takeLast(1)
+                    .toArray().toPromise() as PromiseLike<EditState[]>;
+                store.state$
+                    .first()
+                    .subscribe(s => s.detailsStore.dispatch(DetailsActions.editRequest(emptyDetailItem)));
+                return promise.then(s => {
+                    expect(s[0].item).not.toBeNull();
+                    expect(s[0].item).toEqual(emptyDetailItem);
+                });
+            });
+        });
+    });
+
+    describe("Change status Effects", () => {
+        describe("Given a requester store when its details store dispatches a Change Status action", () => {
+            it("it should dispatch a loadNewStatus to edit store", () => {
+                const store = createRequesterStore([])({ init: withDetailsAndEdit });
+                const promise = store.state$
+                    .switchMap(s => s.editStore ? s.editStore.state$ : Observable.empty<EditState>())
+                    .timeout(40, undefined, queue)
+                    .catch(e => Observable.empty<EditState>())
+                    .takeLast(1)
+                    .toArray().toPromise() as PromiseLike<EditState[]>;
+                store.state$
+                    .first()
+                    .subscribe(s => s.detailsStore
+                        .dispatch(DetailsActions.changeStatus({newStatus: emptyStatus})));
+                return promise.then(s => {
+                    console.log("NEWSTATUS---->", s[0]);
+                    expect(s[0].newStatus).not.toBeNull();
+                    expect(s[0].newStatus).toEqual(emptyStatus);
+                });
             });
         });
 
-    //   const openRequestTest = testActionEffects<RequesterState, RequesterStore>("Given a Requester store",
-    //     createRequesterStore([]));
-
-    //   openRequestTest("When the store receives no events",
-    //     "it should dispatch createDetails, loadItem and setViewMode", [ListActions.openRequest(item)],
-    //     actions => {
-    //         console.log("ACTIONS!!---> ", actions);
-    //         expectAction(actions, RequesterActions.createDetails(createDetailsStore()()));
-    //         expectAction(actions, DetailsActions.loadItem(item));
-    //         expectAction(actions, RequesterActions.setViewMode(RequesterViewMode.Details));
-    //         // expect(actions).toEqual([
-    //         //     RequesterActions.createDetails(createDetailsStore()()),
-    //         //     DetailsActions.loadItem(item),
-    //         //     RequesterActions.setViewMode(RequesterViewMode.Details),
-    //         // ]);
-    //     }, {
-    //         count: 10,
-    //         timeout: 400,
-    //     });
     });
-
 });

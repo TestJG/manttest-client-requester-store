@@ -104,11 +104,11 @@ const validationEffects = (store: EditStore) => store.state$
 
 const saveEditionEffects = (saveEditionService: SaveEditionService) => (store: EditStore) => store.update$
   .filter(u => u.action.type === EditActions.saveEdition.type)
-  .filter(u => u.state.canSave)
+  .filter(u => u.state.canSave && !!u.state.editable)
   .switchMap(u =>
     Observable.concat(
       Observable.of(EditActions.startedSavingEdition()),
-      saveEditionService(u.state.item)
+      saveEditionService(u.state.editable!)
         .map(r => r.kind === "success"
           ? EditActions.savedWithSuccess()
           : EditActions.errorLoadingData(r.error))
